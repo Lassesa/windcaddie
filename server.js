@@ -5,7 +5,6 @@ const { Pool } = require('pg');
 const cors = require('cors');
 const path = require('path');
 
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -18,9 +17,13 @@ const pool = new Pool({
   ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
 });
 
-// Alustetaan tietokanta ja Meri-Toppilan kaikki 18 väylää
+// Alustetaan tietokanta ja Oulun radat
 async function initDb() {
   try {
+    // HUOM: Tämä pudottaa vanhat taulut kerran, jotta uudet radat päivittyvät kantaan.
+    // Voit halutessasi poistaa tai kommentoida tämän rivin myöhemmin.
+    await pool.query('DROP TABLE IF EXISTS holes, courses CASCADE;');
+
     await pool.query(`
       CREATE TABLE IF NOT EXISTS courses (
         id SERIAL PRIMARY KEY,
@@ -39,53 +42,110 @@ async function initDb() {
       );
     `);
 
-    // Tarkistetaan onko kanta tyhjä, ja lisätään testirata (Meri-Toppila)
+    // Tarkistetaan onko kanta tyhjä, ja lisätään radat
     const courseCheck = await pool.query('SELECT * FROM courses');
-    let courseId;
-
+    
     if (courseCheck.rows.length === 0) {
-      const courseRes = await pool.query(
+      
+      // 1. Rata: Meri-Toppila
+      const course1 = await pool.query(
         'INSERT INTO courses (name, lat, lon) VALUES ($1, $2, $3) RETURNING id',
         ['Meri-Toppila DiscGolfPark, Oulu', 65.0530, 25.4260]
       );
-      courseId = courseRes.rows[0].id;
-      console.log('Testirata (Meri-Toppila) luotu tietokantaan!');
-    } else {
-      courseId = courseCheck.rows[0].id;
-    }
+      const c1Id = course1.rows[0].id;
 
-    // Päivitetään tai lisätään kaikki 18 väylää suuntakulmineen
-    await pool.query('DELETE FROM holes WHERE course_id = $1', [courseId]);
+      const holesMeriToppila = [
+        { number: 1, par: 3, length: 112, direction: 280 },
+        { number: 2, par: 3, length: 90, direction: 350 },
+        { number: 3, par: 3, length: 110, direction: 15 },
+        { number: 4, par: 3, length: 63, direction: 200 },
+        { number: 5, par: 3, length: 71, direction: 350 },
+        { number: 6, par: 3, length: 108, direction: 270 },
+        { number: 7, par: 3, length: 86, direction: 100 },
+        { number: 8, par: 3, length: 116, direction: 260 },
+        { number: 9, par: 4, length: 185, direction: 280 },
+        { number: 10, par: 3, length: 89, direction: 220 },
+        { number: 11, par: 3, length: 100, direction: 170 },
+        { number: 12, par: 3, length: 93, direction: 350 },
+        { number: 13, par: 3, length: 92, direction: 160 },
+        { number: 14, par: 3, length: 73, direction: 210 },
+        { number: 15, par: 3, length: 94, direction: 350 },
+        { number: 16, par: 3, length: 111, direction: 130 },
+        { number: 17, par: 3, length: 83, direction: 150 },
+        { number: 18, par: 3, length: 117, direction: 150 }
+      ];
 
-    const holesData = [
-      { number: 1, par: 3, length: 112, direction: 280 },
-      { number: 2, par: 3, length: 90, direction: 350 },
-      { number: 3, par: 3, length: 110, direction: 15 },
-      { number: 4, par: 3, length: 63, direction: 200 },
-      { number: 5, par: 3, length: 71, direction: 350 },
-      { number: 6, par: 3, length: 108, direction: 270 },
-      { number: 7, par: 3, length: 86, direction: 100 },
-      { number: 8, par: 3, length: 116, direction: 260 },
-      { number: 9, par: 4, length: 185, direction: 280 },
-      { number: 10, par: 3, length: 89, direction: 220 },
-      { number: 11, par: 3, length: 100, direction: 170 },
-      { number: 12, par: 3, length: 93, direction: 350 },
-      { number: 13, par: 3, length: 92, direction: 160 },
-      { number: 14, par: 3, length: 73, direction: 210 },
-      { number: 15, par: 3, length: 94, direction: 350 },
-      { number: 16, par: 3, length: 111, direction: 130 },
-      { number: 17, par: 3, length: 83, direction: 150 },
-      { number: 18, par: 3, length: 117, direction: 150 }
-    ];
+      for (const h of holesMeriToppila) {
+        await pool.query(
+          'INSERT INTO holes (course_id, hole_number, par, length_meters, throw_direction_deg) VALUES ($1, $2, $3, $4, $5)',
+          [c1Id, h.number, h.par, h.length, h.direction]
+        );
+      }
 
-    for (const h of holesData) {
-      await pool.query(
-        'INSERT INTO holes (course_id, hole_number, par, length_meters, throw_direction_deg) VALUES ($1, $2, $3, $4, $5)',
-        [courseId, h.number, h.par, h.length, h.direction]
+      // 2. Rata: Hiironen Disc Golf Park
+      const course2 = await pool.query(
+        'INSERT INTO courses (name, lat, lon) VALUES ($1, $2, $3) RETURNING id',
+        ['Hiironen Disc Golf Park, Oulu', 64.9915, 25.5310]
       );
+      const c2Id = course2.rows[0].id;
+
+      const holesHiironen = [
+        { number: 1, par: 3, length: 95, direction: 90 },
+        { number: 2, par: 3, length: 110, direction: 180 },
+        { number: 3, par: 3, length: 85, direction: 45 },
+        { number: 4, par: 3, length: 130, direction: 270 },
+        { number: 5, par: 3, length: 75, direction: 120 },
+        { number: 6, par: 3, length: 100, direction: 330 },
+        { number: 7, par: 3, length: 90, direction: 200 },
+        { number: 8, par: 3, length: 115, direction: 60 },
+        { number: 9, par: 3, length: 105, direction: 150 },
+        { number: 10, par: 3, length: 95, direction: 240 },
+        { number: 11, par: 3, length: 120, direction: 10 },
+        { number: 12, par: 3, length: 80, direction: 190 },
+        { number: 13, par: 3, length: 110, direction: 300 },
+        { number: 14, par: 3, length: 88, direction: 80 },
+        { number: 15, par: 3, length: 125, direction: 220 },
+        { number: 16, par: 3, length: 95, direction: 140 },
+        { number: 17, par: 3, length: 100, direction: 310 },
+        { number: 18, par: 3, length: 140, direction: 30 }
+      ];
+
+      for (const h of holesHiironen) {
+        await pool.query(
+          'INSERT INTO holes (course_id, hole_number, par, length_meters, throw_direction_deg) VALUES ($1, $2, $3, $4, $5)',
+          [c2Id, h.number, h.par, h.length, h.direction]
+        );
+      }
+
+      // 3. Rata: Pikkarala FrisbeeGolf
+      const course3 = await pool.query(
+        'INSERT INTO courses (name, lat, lon) VALUES ($1, $2, $3) RETURNING id',
+        ['Pikkarala FrisbeeGolf (Prodigy Track)', 64.9120, 25.7550]
+      );
+      const c3Id = course3.rows[0].id;
+
+      const holesPikkarala = [
+        { number: 1, par: 3, length: 105, direction: 110 },
+        { number: 2, par: 3, length: 125, direction: 45 },
+        { number: 3, par: 3, length: 90, direction: 270 },
+        { number: 4, par: 3, length: 140, direction: 180 },
+        { number: 5, par: 3, length: 110, direction: 90 },
+        { number: 6, par: 3, length: 95, direction: 320 },
+        { number: 7, par: 3, length: 130, direction: 210 },
+        { number: 8, par: 3, length: 115, direction: 15 },
+        { number: 9, par: 3, length: 150, direction: 240 }
+      ];
+
+      for (const h of holesPikkarala) {
+        await pool.query(
+          'INSERT INTO holes (course_id, hole_number, par, length_meters, throw_direction_deg) VALUES ($1, $2, $3, $4, $5)',
+          [c3Id, h.number, h.par, h.length, h.direction]
+        );
+      }
+
+      console.log('Kaikki radat ja väylät luotu tietokantaan onnistuneesti!');
     }
 
-    console.log('Kaikki 18 väylää päivitetty tietokantaan!');
     console.log('Tietokanta valmiina.');
   } catch (err) {
     console.error('Virhe tietokannan alustuksessa:', err);
@@ -129,7 +189,7 @@ function getWindRelation(windDirDeg, throwDirDeg) {
     return { type: "Vaihteleva tuuli", advice: "Pelaa varman päälle." };
 }
 
-// Päivitetty API-reitti, joka yhdistää sään ja laskee väyläkohtaisen tuulen
+// API-reitti, joka yhdistää sään ja laskee väyläkohtaisen tuulen
 app.get('/api/courses/:id/weather', async (req, res) => {
   try {
     const courseId = req.params.id;
@@ -142,14 +202,15 @@ app.get('/api/courses/:id/weather', async (req, res) => {
 
     const holesResult = await pool.query('SELECT * FROM holes WHERE course_id = $1 ORDER BY hole_number ASC', [courseId]);
     
-    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${course.lat}&longitude=${course.lon}&hourly=temperature_2m,wind_direction_10m,wind_speed_10m,wind_gusts_10m&wind_speed_unit=ms&forecast_days=1`;
+    // Haetaan suoraan tämän hetkinen sää (current-parametri)
+    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${course.lat}&longitude=${course.lon}&current=temperature_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m&wind_speed_unit=ms`;
     const weatherRes = await axios.get(weatherUrl);
     
     const currentWeather = {
-      temperature: weatherRes.data.hourly.temperature_2m[0],
-      windSpeed: weatherRes.data.hourly.wind_speed_10m[0],
-      windDirection: weatherRes.data.hourly.wind_direction_10m[0],
-      windGusts: weatherRes.data.hourly.wind_gusts_10m[0]
+      temperature: weatherRes.data.current.temperature_2m,
+      windSpeed: weatherRes.data.current.wind_speed_10m,
+      windDirection: weatherRes.data.current.wind_direction_10m,
+      windGusts: weatherRes.data.current.wind_gusts_10m
     };
 
     // Lasketaan jokaiselle väylälle tuilianalyysi

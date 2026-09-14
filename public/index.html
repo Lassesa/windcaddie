@@ -9,31 +9,79 @@
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen p-4 sm:p-8">
     <div class="max-w-3xl mx-auto">
-        <!-- Otsikko & Sääinfo -->
+        
+        <!-- Ylätunniste ja radanvalitsin -->
         <header class="mb-8 text-center">
-            <h1 id="course-name" class="text-3xl font-extrabold text-teal-400 mb-2">Ladataan rataa...</h1>
-            <div id="weather-box" class="inline-block bg-slate-800 border border-slate-700 rounded-xl px-6 py-3 shadow-lg text-sm sm:text-base">
+            <h1 class="text-3xl font-extrabold text-teal-400 mb-4">Disc Golf Wind Caddie</h1>
+            <p class="text-slate-400 text-sm mb-6">Reaaliaikainen tuilianalyysi ja taktiset vinkit frisbeegolfiin</p>
+            
+            <!-- Radan valintapudotusvalikko -->
+            <div class="mb-6 flex flex-col sm:flex-row justify-center items-center gap-2">
+                <label for="course-select" class="text-sm font-medium text-slate-300">Valitse rata:</label>
+                <select id="course-select" onchange="onCourseChange(this.value)" class="bg-slate-800 border border-slate-700 text-slate-100 rounded-xl px-4 py-2.5 shadow-lg focus:outline-none focus:border-teal-500 w-full sm:w-80">
+                    <option value="">Ladataan ratoja...</option>
+                </select>
+            </div>
+
+            <!-- Sääinfo-laatikko -->
+            <div id="weather-box" class="inline-block bg-slate-800 border border-slate-700 rounded-xl px-6 py-3 shadow-lg text-sm sm:text-base hidden">
                 <span id="weather-info">Haetaan säätietoja...</span>
             </div>
         </header>
 
         <!-- Väylälista / Caddie-kortit -->
         <main id="holes-container" class="space-y-4">
-            <!-- Väyläkortit latautuvat tänne JavaScriptillä -->
+            <div class="text-center text-slate-500 py-10">Ladataan rataa...</div>
         </main>
     </div>
 
     <script>
-        async function loadCaddieData() {
+        // Haetaan listaus radoista sivun latautuessa
+        async function loadCourses() {
             try {
-                // Haetaan data backendin rajapinnasta (oletetaan rata ID 1)
-                const response = await fetch('/api/courses/1/weather');
+                const response = await fetch('/api/courses');
+                const courses = await response.json();
+
+                const select = document.getElementById('course-select');
+                select.innerHTML = '';
+
+                courses.forEach((course) => {
+                    const option = document.createElement('option');
+                    option.value = course.id;
+                    option.textContent = course.name;
+                    select.appendChild(option);
+                });
+
+                // Ladataan oletuksena ensimmäinen rata listasta
+                if (courses.length > 0) {
+                    loadWeatherData(courses[0].id);
+                }
+            } catch (err) {
+                console.error('Virhe ratojen haussa:', err);
+                document.getElementById('holes-container').innerHTML = '<div class="text-center text-red-400 py-10">Virhe ratojen latauksessa.</div>';
+            }
+        }
+
+        // Kun käyttäjä vaihtaa rataa valikosta
+        function onCourseChange(courseId) {
+            if (courseId) {
+                loadWeatherData(courseId);
+            }
+        }
+
+        // Haetaan valitun radan sää ja väylätiedot
+        async function loadWeatherData(courseId) {
+            try {
+                const container = document.getElementById('holes-container');
+                container.innerHTML = '<div class="text-center text-slate-400 py-10">Ladataan säätietoja ja väyläanalyysejä...</div>';
+
+                const response = await fetch(`/api/courses/${courseId}/weather`);
                 const data = await response.json();
 
-                // Asetetaan radan nimi
-                document.getElementById('course-name').textContent = data.course;
+                // Näytetään säälaatikko
+                const weatherBox = document.getElementById('weather-box');
+                weatherBox.classList.remove('hidden');
 
-                // Asetetaan sääpäivitys
                 const w = data.currentWeather;
                 document.getElementById('weather-info').innerHTML = `
                     🌡️ Lämpötila: <strong class="text-teal-300">${w.temperature}°C</strong> | 
@@ -42,7 +90,6 @@
                 `;
 
                 // Piirretään väylät
-                const container = document.getElementById('holes-container');
                 container.innerHTML = '';
 
                 data.holes.forEach(hole => {
@@ -51,7 +98,7 @@
                     
                     card.innerHTML = `
                         <div class="flex justify-between items-center mb-3">
-                            <div class="flex items-center space-x-3">
+                            <div class="flex flex-wrap items-center gap-2">
                                 <span class="bg-teal-600 text-white font-bold px-3 py-1 rounded-lg text-lg">Väylä ${hole.hole_number}</span>
                                 <span class="text-slate-400 text-sm">Par ${hole.par} • ${hole.length_meters}m • Heittosuunta ${hole.throw_direction_deg}°</span>
                             </div>
@@ -66,11 +113,12 @@
 
             } catch (err) {
                 console.error(err);
-                document.getElementById('course-name').textContent = 'Virhe ladattaessa tietoja';
+                document.getElementById('holes-container').innerHTML = '<div class="text-center text-red-400 py-10">Virhe ladattaessa säätietoja radalle.</div>';
             }
         }
 
-        loadCaddieData();
+        // Käynnistetään sovellus
+        loadCourses();
     </script>
 </body>
 </html>
