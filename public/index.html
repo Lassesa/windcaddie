@@ -13,7 +13,7 @@
         <!-- Ylätunniste ja radanvalitsin -->
         <header class="mb-8 text-center">
             <h1 class="text-3xl font-extrabold text-teal-400 mb-4">Disc Golf Wind Caddie</h1>
-            <p class="text-slate-400 text-sm mb-6">Reaaliaikainen tuilianalyysi ja taktiset vinkit frisbeegolfiin</p>
+            <p class="text-slate-400 text-sm mb-6">Reaaliaikainen tuulianalyysi ja taktiset vinkit frisbeegolfiin</p>
             
             <!-- Radan valintapudotusvalikko -->
             <div class="mb-6 flex flex-col sm:flex-row justify-center items-center gap-2">
@@ -83,10 +83,28 @@
                 weatherBox.classList.remove('hidden');
 
                 const w = data.currentWeather;
+                
+                // Muotoillaan aikaleima niin, että se näytetään oikealla aikavyöhykkeellä (Helsinki / Suomen aika)
+                let formattedTime = 'Ei tiedossa';
+                if (w.time) {
+                    // Lisätään 'Z' loppuun, jotta JavaScript ymmärtää annetun ajan UTC-ajaksi
+                    const utcDate = new Date(w.time.endsWith('Z') ? w.time : w.time + 'Z');
+                    formattedTime = utcDate.toLocaleTimeString('fi-FI', { 
+                        timeZone: 'Europe/Helsinki', 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                    });
+                }
+
                 document.getElementById('weather-info').innerHTML = `
-                    🌡️ Lämpötila: <strong class="text-teal-300">${w.temperature}°C</strong> | 
-                    💨 Tuuli: <strong class="text-teal-300">${w.windSpeed} m/s</strong> (Suunta: <strong class="text-teal-300">${w.windDirection}°</strong>) | 
-                    ⚡ Puuskat: <strong class="text-amber-400">${w.windGusts} m/s</strong>
+                    <div class="mb-1">
+                        🌡️ Lämpötila: <strong class="text-teal-300">${w.temperature}°C</strong> | 
+                        💨 Tuuli: <strong class="text-teal-300">${w.windSpeed} m/s</strong> (${w.windDirection}°) | 
+                        ⚡ Puuskat: <strong class="text-amber-400">${w.windGusts} m/s</strong>
+                    </div>
+                    <div class="text-xs text-slate-400">
+                        🕒 Säätieto päivitetty: <span class="text-slate-300">${formattedTime}</span> (Open-Meteo API)
+                    </div>
                 `;
 
                 // Piirretään väylät

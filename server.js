@@ -210,7 +210,8 @@ app.get('/api/courses/:id/weather', async (req, res) => {
       temperature: weatherRes.data.current.temperature_2m,
       windSpeed: weatherRes.data.current.wind_speed_10m,
       windDirection: weatherRes.data.current.wind_direction_10m,
-      windGusts: weatherRes.data.current.wind_gusts_10m
+      windGusts: weatherRes.data.current.wind_gusts_10m,
+      time: weatherRes.data.current.time
     };
 
     // Lasketaan jokaiselle väylälle tuilianalyysi
