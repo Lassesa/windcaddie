@@ -143,7 +143,33 @@ async function initDb() {
         );
       }
 
-      console.log('Kaikki radat ja väylät luotu tietokantaan onnistuneesti!');
+      // 4. Rata: Ylivieskan liikuntapuisto
+      const course4 = await pool.query(
+        'INSERT INTO courses (name, lat, lon) VALUES ($1, $2, $3) RETURNING id',
+        ['Ylivieska DiscGolfPark (Liikuntapuisto)', 64.0735, 24.5565]
+      );
+      const c4Id = course4.rows[0].id;
+
+      const holesYlivieska = [
+        { number: 1, par: 3, length: 100, direction: 45 },
+        { number: 2, par: 3, length: 115, direction: 130 },
+        { number: 3, par: 3, length: 85, direction: 220 },
+        { number: 4, par: 3, length: 135, direction: 310 },
+        { number: 5, par: 3, length: 90, direction: 90 },
+        { number: 6, par: 3, length: 105, direction: 180 },
+        { number: 7, par: 3, length: 75, direction: 270 },
+        { number: 8, par: 3, length: 120, direction: 360 },
+        { number: 9, par: 3, length: 110, direction: 75 }
+      ];
+
+      for (const h of holesYlivieska) {
+        await pool.query(
+          'INSERT INTO holes (course_id, hole_number, par, length_meters, throw_direction_deg) VALUES ($1, $2, $3, $4, $5)',
+          [c4Id, h.number, h.par, h.length, h.direction]
+        );
+      }
+
+      console.log('Kaikki radat (Meri-Toppila, Hiironen, Pikkarala, Ylivieska) luotu kantaan!');
     }
 
     console.log('Tietokanta valmiina.');
